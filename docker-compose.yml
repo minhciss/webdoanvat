@@ -1,0 +1,55 @@
+services:
+  # 1. Dịch vụ Backend API Express.js
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: webdoanvat_backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=development
+      - FRONTEND_URL=http://localhost:5173
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=webdoanvat
+      - JWT_SECRET=super_secret_jwt_key_for_webdoanvat_2026
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - webdoanvat_net
+
+  # 2. Dịch vụ Cơ sở dữ liệu MySQL (Tự động nạp schema.sql & seed.sql)
+  db:
+    image: mysql:8.0
+    container_name: webdoanvat_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: webdoanvat
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - webdoanvat_net
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  webdoanvat_net:
+    driver: bridge

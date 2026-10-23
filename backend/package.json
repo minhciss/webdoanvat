@@ -1,0 +1,20 @@
+{
+  "name": "webdoanvat-backend",
+  "version": "1.0.0",
+  "description": "Backend RESTful API for Snack E-Commerce System (ĂnVặtPro)",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {},
+  "keywords": ["express", "rest-api", "ecommerce", "snack-shop", "vietnam"],
+  "author": "",
+  "license": "ISC"
+}

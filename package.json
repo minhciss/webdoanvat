@@ -1,0 +1,27 @@
+{
+  "name": "webdoanvat-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dự án Công nghệ phần mềm: Hệ thống Website Bán Đồ Ăn Vặt Trực Tuyến (ĂnVặtPro)",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "install:all": "npm --prefix frontend install && npm --prefix backend install",
+    "lint:frontend": "npm --prefix frontend run lint",
+    "docker:backend:build": "docker build -t webdoanvat-backend ./backend",
+    "docker:backend:run": "docker run -d -p 5000:5000 --name webdoanvat_backend webdoanvat-backend",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f backend"
+  },
+  "keywords": [
+    "snack-store",
+    "react",
+    "express",
+    "mysql",
+    "software-engineering"
+  ],
+  "author": "",
+  "license": "ISC"
+}
