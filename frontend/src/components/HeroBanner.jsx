@@ -133,7 +133,7 @@ export default function HeroBanner() {
             <div className="relative group">
               <div className="w-64 h-64 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/30 rotate-2 group-hover:rotate-0 transition duration-300">
                 <img
-                  src="https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=800&auto=format&fit=crop&q=80"
+                  src="/images/products/banh_trang_cuon.jpg"
                   alt="Bánh tráng sốt bơ"
                   className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
                 />

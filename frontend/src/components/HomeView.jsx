@@ -21,6 +21,7 @@ export default function HomeView({
 }) {
   const { products, reviews } = useApp();
 
+  const newArrivalProducts = products.filter((p) => p.isNew);
   const flashSaleProducts = products.filter((p) => p.isFlashSale).slice(0, 4);
   const bestSellerProducts = products.filter((p) => p.isBestSeller).slice(0, 4);
   const comboProducts = products.filter((p) => p.categoryId === 'combo').slice(0, 2);
@@ -39,6 +40,46 @@ export default function HomeView({
           onViewAllMenu();
         }}
       />
+
+      {/* 2.5 New Arrivals Showcase Section (Món Mới Ra Lò Giới Thiệu) */}
+      {newArrivalProducts.length > 0 && (
+        <section className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent p-6 rounded-3xl border border-emerald-200/70 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/50 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md">
+                <Sparkles className="w-6 h-6 fill-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-black text-stone-900 tracking-tight">
+                    Món Mới Ra Lò - Trải Nghiệm Hương Vị Độc Quyền
+                  </h2>
+                  <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                    MỚI CẬP NHẬT
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500">
+                  Các món ăn vặt mới nhất vừa được bếp ĂnVặtPro phát triển và đưa lên thực đơn
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={onViewAllMenu}
+              className="text-xs font-black text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition"
+            >
+              <span>Xem tất cả thực đơn</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {newArrivalProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 3. Flash Sale Section */}
       <section className="bg-gradient-to-br from-orange-500/10 via-amber-500/5 to-transparent p-6 rounded-3xl border border-orange-200/60 space-y-4">
@@ -240,7 +281,7 @@ export default function HomeView({
               <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
                 <span className="font-bold text-stone-900">{rev.userName}</span>
                 <span className="text-[10px] bg-orange-50 text-orange-700 font-bold px-2 py-0.5 rounded-md">
-                  Vị cay: {rev.spiceLevel}
+                  Tùy chọn: {rev.spiceLevel}
                 </span>
               </div>
             </div>

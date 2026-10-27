@@ -1,25 +1,104 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   INITIAL_PRODUCTS,
   AVAILABLE_VOUCHERS,
   INITIAL_ORDERS,
   INITIAL_REVIEWS,
+  INITIAL_CUSTOMERS,
   INITIAL_AUDIT_LOGS,
 } from '../data/mockData';
 import confetti from 'canvas-confetti';
 
 const AppContext = createContext();
 
+// Helper to parse current URL hash into viewMode and active tabs
+export const parseHashRoute = (hashString) => {
+  const hash = hashString || (typeof window !== 'undefined' ? window.location.hash : '') || '#home';
+
+  if (hash.startsWith('#admin')) {
+    const tab = hash.replace('#admin-', '').trim() || 'dashboard';
+    const validAdminTabs = [
+      'dashboard',
+      'products',
+      'orders',
+      'customers',
+      'inventory',
+      'vouchers',
+      'reviews',
+      'logs',
+    ];
+    return {
+      viewMode: 'admin',
+      adminTab: validAdminTabs.includes(tab) ? tab : 'dashboard',
+      customerTab: 'home',
+      activeTrackingId: 'AV-89211',
+      productId: null,
+    };
+  }
+
+  if (hash.startsWith('#product-')) {
+    const prodId = hash.replace('#product-', '').trim();
+    return {
+      viewMode: 'customer',
+      adminTab: 'dashboard',
+      customerTab: 'product-detail',
+      activeTrackingId: 'AV-89211',
+      productId: prodId,
+    };
+  }
+
+  if (hash.startsWith('#tracking')) {
+    const match = hash.match(/\?id=([^&]+)/);
+    const trackingId = match && match[1] ? decodeURIComponent(match[1]) : 'AV-89211';
+    return {
+      viewMode: 'customer',
+      adminTab: 'dashboard',
+      customerTab: 'tracking',
+      activeTrackingId: trackingId,
+      productId: null,
+    };
+  }
+
+  const cleanCustomer = hash.replace('#', '').trim();
+  const validCustomerTabs = ['home', 'menu', 'cart', 'checkout', 'profile', 'product-detail'];
+  if (validCustomerTabs.includes(cleanCustomer)) {
+    return {
+      viewMode: 'customer',
+      adminTab: 'dashboard',
+      customerTab: cleanCustomer,
+      activeTrackingId: 'AV-89211',
+      productId: null,
+    };
+  }
+
+  return {
+    viewMode: 'customer',
+    adminTab: 'dashboard',
+    customerTab: 'home',
+    activeTrackingId: 'AV-89211',
+    productId: null,
+  };
+};
+
 export function AppProvider({ children }) {
-  // Navigation / View modes
-  const [viewMode, setViewMode] = useState('customer'); // 'customer' | 'admin'
-  const [customerTab, setCustomerTab] = useState('home'); // 'home' | 'menu' | 'cart' | 'checkout' | 'tracking' | 'profile'
-  const [adminTab, setAdminTab] = useState('dashboard'); // 'dashboard' | 'products' | 'orders' | 'inventory' | 'vouchers' | 'reviews' | 'logs'
+  // Parse initial route from window.location.hash once on mount
+  const initialRoute = useRef(parseHashRoute(typeof window !== 'undefined' ? window.location.hash : '')).current;
+
+  // Navigation / View modes (initialized from current URL hash so F5 stays on current page!)
+  const [viewMode, setViewMode] = useState(initialRoute.viewMode); // 'customer' | 'admin'
+  const [customerTab, setCustomerTab] = useState(initialRoute.customerTab); // 'home' | 'menu' | 'cart' | 'checkout' | 'tracking' | 'profile' | 'product-detail'
+  const [adminTab, setAdminTab] = useState(initialRoute.adminTab); // 'dashboard' | 'products' | 'orders' | 'customers' | 'inventory' | 'vouchers' | 'reviews' | 'logs'
 
   // Products
   const [products, setProducts] = useState(() => {
+    const savedVersion = localStorage.getItem('anvat_products_version');
     const saved = localStorage.getItem('anvat_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    if (saved && savedVersion === 'v4_flan_accurate_sauce_no_ice') {
+      return JSON.parse(saved);
+    }
+    localStorage.setItem('anvat_products_version', 'v4_flan_accurate_sauce_no_ice');
+    localStorage.setItem('anvat_products', JSON.stringify(INITIAL_PRODUCTS));
+    return INITIAL_PRODUCTS;
   });
 
   // Cart
@@ -35,31 +114,172 @@ export function AppProvider({ children }) {
 
   // Orders
   const [orders, setOrders] = useState(() => {
+    const savedVersion = localStorage.getItem('anvat_orders_version');
     const saved = localStorage.getItem('anvat_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    if (saved && savedVersion === 'v3_user_specific_orders') {
+      return JSON.parse(saved);
+    }
+    localStorage.setItem('anvat_orders_version', 'v3_user_specific_orders');
+    localStorage.setItem('anvat_orders', JSON.stringify(INITIAL_ORDERS));
+    return INITIAL_ORDERS;
   });
-  const [activeTrackingId, setActiveTrackingId] = useState('AV-89211');
+  const [activeTrackingId, setActiveTrackingId] = useState(initialRoute.activeTrackingId || 'AV-89211');
 
-  // Reviews
-  const [reviews, setReviews] = useState(INITIAL_REVIEWS);
+  // Reviews (persisted to localStorage)
+  const [reviews, setReviews] = useState(() => {
+    const saved = localStorage.getItem('anvat_reviews');
+    return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('anvat_reviews', JSON.stringify(reviews));
+  }, [reviews]);
 
   // Audit Logs
   const [auditLogs, setAuditLogs] = useState(INITIAL_AUDIT_LOGS);
 
-  // User Authentication
-  const [user, setUser] = useState({
-    id: 'USR-01',
-    name: 'Nguyễn Văn An',
-    email: 'khachhang@anvatpro.vn',
-    phone: '0909123456',
-    address: '72 Lê Thánh Tôn, Bến Nghé, Quận 1, TP.HCM',
-    points: 240, // 240 điểm tích lũy
-    role: 'customer', // 'customer' | 'admin'
+  // User Authentication (null by default if not logged in, loaded from localStorage)
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('anvat_user');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.role !== 'guest' && parsed.id !== 'GUEST') {
+          return parsed;
+        }
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
   });
+
+  // Always keep non-guest user synced with localStorage so F5 NEVER logs out!
+  useEffect(() => {
+    if (user && user.role !== 'guest' && user.id !== 'GUEST') {
+      localStorage.setItem('anvat_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('anvat_user');
+    }
+  }, [user]);
+
+  // Customers Management (Admin)
+  const [customers, setCustomers] = useState(() => {
+    const saved = localStorage.getItem('anvat_customers');
+    return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('anvat_customers', JSON.stringify(customers));
+  }, [customers]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Product Detail Modal
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(() => {
+    if (initialRoute.productId) {
+      try {
+        const saved = localStorage.getItem('anvat_products');
+        const list = saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+        return list.find((p) => p.id === initialRoute.productId) || null;
+      } catch (e) {
+        return INITIAL_PRODUCTS.find((p) => p.id === initialRoute.productId) || null;
+      }
+    }
+    return null;
+  });
+
+  const viewProductDetail = (product) => {
+    setSelectedProduct(product);
+    setCustomerTab('product-detail');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Browser History & URL Hash Synchronization (Back / Forward Button & F5 Support)
+  const isPopStateRef = useRef(false);
+  const isInitialMountRef = useRef(true);
+
+  const getHash = () => {
+    if (viewMode === 'admin') {
+      return `#admin-${adminTab || 'dashboard'}`;
+    }
+    if (customerTab === 'product-detail' && selectedProduct) {
+      return `#product-${selectedProduct.id}`;
+    }
+    if (customerTab === 'tracking') {
+      return activeTrackingId ? `#tracking?id=${activeTrackingId}` : '#tracking';
+    }
+    if (customerTab === 'home') {
+      return '#home';
+    }
+    return `#${customerTab}`;
+  };
+
+  // Push history state whenever tab / product / tracking changes
+  useEffect(() => {
+    const targetHash = getHash();
+
+    // On initial mount: if URL already has a valid hash, do not overwrite with #home!
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      if (!window.location.hash || window.location.hash === '#') {
+        window.history.replaceState(
+          {
+            viewMode,
+            customerTab,
+            adminTab,
+            selectedProductId: selectedProduct?.id,
+            activeTrackingId,
+          },
+          '',
+          '#home'
+        );
+      }
+      return;
+    }
+
+    if (isPopStateRef.current) {
+      isPopStateRef.current = false;
+      return;
+    }
+
+    if (window.location.hash !== targetHash) {
+      window.history.pushState(
+        {
+          viewMode,
+          customerTab,
+          adminTab,
+          selectedProductId: selectedProduct?.id,
+          activeTrackingId,
+        },
+        '',
+        targetHash
+      );
+    }
+  }, [viewMode, customerTab, adminTab, selectedProduct, activeTrackingId]);
+
+  // Handle browser Back / Forward buttons (popstate event)
+  useEffect(() => {
+    const handlePopState = () => {
+      isPopStateRef.current = true;
+      const parsed = parseHashRoute(window.location.hash);
+      setViewMode(parsed.viewMode);
+      setAdminTab(parsed.adminTab);
+      setCustomerTab(parsed.customerTab);
+      if (parsed.activeTrackingId) {
+        setActiveTrackingId(parsed.activeTrackingId);
+      }
+      if (parsed.productId) {
+        const found = products.find((p) => p.id === parsed.productId);
+        if (found) {
+          setSelectedProduct(found);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [products]);
 
   // Mini Cart Drawer
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
@@ -216,9 +436,10 @@ export function AppProvider({ children }) {
 
     const newOrder = {
       id: orderCode,
-      customerName: orderData.customerName || user.name,
-      customerPhone: orderData.customerPhone || user.phone,
-      shippingAddress: orderData.shippingAddress || user.address,
+      userId: user?.id || 'GUEST',
+      customerName: orderData.customerName || user?.name || 'Khách vãng lai',
+      customerPhone: orderData.customerPhone || user?.phone || '',
+      shippingAddress: orderData.shippingAddress || user?.address || '',
       orderDate: formattedDate,
       status: 'pending',
       paymentMethod: orderData.paymentMethod || 'vietqr',
@@ -311,6 +532,72 @@ export function AppProvider({ children }) {
     showToast(`Đã hủy đơn hàng ${orderId}!`, 'info');
   };
 
+  // Customer Management (Admin)
+  const addCustomer = (customerData) => {
+    const newCust = {
+      id: `USR-${Math.floor(10 + Math.random() * 90)}`,
+      ...customerData,
+      points: Number(customerData.points) || 0,
+      orderCount: 0,
+      totalSpent: 0,
+      status: 'active',
+      joinedDate: new Date().toLocaleDateString('vi-VN'),
+    };
+    setCustomers((prev) => [newCust, ...prev]);
+    addAuditLog('Thêm khách hàng', `Tạo tài khoản khách hàng mới: ${newCust.name} (${newCust.phone})`);
+    showToast(`Đã thêm khách hàng "${newCust.name}" thành công!`);
+  };
+
+  const updateCustomer = (id, customerData) => {
+    setCustomers((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...customerData } : c))
+    );
+    // If updating current logged in user
+    if (user && user.id === id) {
+      setUser((prev) => ({ ...prev, ...customerData }));
+    }
+    addAuditLog('Cập nhật khách hàng', `Sửa thông tin khách hàng ID #${id}`);
+    showToast('Cập nhật thông tin khách hàng thành công!');
+  };
+
+  const toggleCustomerStatus = (id) => {
+    setCustomers((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          const nextStatus = c.status === 'blocked' ? 'active' : 'blocked';
+          addAuditLog('Đổi trạng thái khách', `Khách hàng ${c.name} chuyển sang: ${nextStatus}`);
+          showToast(`Đã ${nextStatus === 'blocked' ? 'khóa' : 'mở khóa'} tài khoản ${c.name}!`, nextStatus === 'blocked' ? 'error' : 'success');
+          return { ...c, status: nextStatus };
+        }
+        return c;
+      })
+    );
+  };
+
+  const adjustCustomerPoints = (id, diff, reason) => {
+    setCustomers((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          const newPts = Math.max(0, (c.points || 0) + diff);
+          return { ...c, points: newPts };
+        }
+        return c;
+      })
+    );
+    if (user && user.id === id) {
+      setUser((prev) => ({ ...prev, points: Math.max(0, (prev.points || 0) + diff) }));
+    }
+    addAuditLog('Điều chỉnh điểm thưởng', `Khách ID #${id} ${diff > 0 ? '+' : ''}${diff} Xu - Lý do: ${reason}`);
+    showToast(`Đã ${diff > 0 ? 'cộng' : 'trừ'} ${Math.abs(diff)} Xu thành công!`);
+  };
+
+  const deleteCustomer = (id) => {
+    const target = customers.find((c) => c.id === id);
+    setCustomers((prev) => prev.filter((c) => c.id !== id));
+    addAuditLog('Xóa khách hàng', `Xóa tài khoản khách ${target?.name || id}`);
+    showToast('Đã xóa tài khoản khách hàng khỏi hệ thống!', 'info');
+  };
+
   // Product Management (Admin)
   const addProduct = (newProd) => {
     const id = `AV-${Date.now().toString().slice(-4)}`;
@@ -321,6 +608,8 @@ export function AppProvider({ children }) {
       reviewCount: 0,
       soldCount: 0,
       status: 'available',
+      isNew: newProd.isNew !== undefined ? newProd.isNew : true,
+      createdAt: new Date().toISOString(),
     };
     setProducts((prev) => [fullProd, ...prev]);
     addAuditLog('Thêm món mới', `Thêm "${fullProd.name}" vào thực đơn`);
@@ -370,7 +659,107 @@ export function AppProvider({ children }) {
       date: new Date().toLocaleDateString('vi-VN'),
     };
     setReviews((prev) => [newRev, ...prev]);
-    showToast('Cảm ơn bạn đã gửi đánh giá cho quán!');
+    setUser((prev) => ({ ...prev, points: (prev.points || 0) + 20 }));
+    showToast('Cảm ơn bạn đã gửi đánh giá! (+20 Xu tích lũy)');
+  };
+
+  const reviewOrder = (orderId, rating, comment) => {
+    const numRating = Number(rating) || 5;
+    const cleanComment = (comment || '').trim() || 'Món ăn rất ngon, hương vị chuẩn quán, đóng gói cẩn thận!';
+    const orderIdStr = String(orderId || '').trim();
+
+    // 1. Update orders in state and localStorage
+    setOrders((prev) => {
+      const updated = prev.map((ord) => {
+        if (ord.id && ord.id.toUpperCase() === orderIdStr.toUpperCase()) {
+          return {
+            ...ord,
+            reviewed: true,
+            rating: numRating,
+            reviewComment: cleanComment,
+            reviewedAt: new Date().toLocaleDateString('vi-VN'),
+          };
+        }
+        return ord;
+      });
+      localStorage.setItem('anvat_orders', JSON.stringify(updated));
+      return updated;
+    });
+
+    // 2. Save reviews for each item in the order
+    const targetOrder = orders.find(
+      (o) => o.id && o.id.toUpperCase() === orderIdStr.toUpperCase()
+    );
+
+    if (targetOrder?.items && targetOrder.items.length > 0) {
+      const newItemsReviews = targetOrder.items.map((item, idx) => ({
+        id: Date.now() + idx,
+        productId: item.id || item.productId,
+        productName: item.name,
+        userName: targetOrder.customerName || user?.name || 'Khách hàng',
+        rating: numRating,
+        comment: cleanComment,
+        spiceLevel: item.spiceLevel || 'Chuẩn vị',
+        date: new Date().toLocaleDateString('vi-VN'),
+      }));
+      setReviews((prev) => [...newItemsReviews, ...prev]);
+    }
+
+    // 3. Award loyalty points (+20 xu)
+    if (user) {
+      setUser((prev) => (prev ? { ...prev, points: (prev.points || 0) + 20 } : prev));
+    }
+    setCustomers((prev) =>
+      prev.map((c) => {
+        if (
+          (user && c.id === user.id) ||
+          (targetOrder && c.phone === targetOrder.customerPhone)
+        ) {
+          return { ...c, points: (c.points || 0) + 20 };
+        }
+        return c;
+      })
+    );
+
+    addAuditLog('Khách đánh giá đơn hàng', `Đơn #${orderIdStr} được đánh giá ${numRating} sao: "${cleanComment}"`);
+
+    try {
+      confetti({
+        particleCount: 90,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+    } catch (e) {}
+
+    showToast('Đã gửi đánh giá thành công! Bạn nhận được +20 Xu ĂnVặt.');
+  };
+
+  const replyReview = (reviewId, replyText) => {
+    const cleanText = (replyText || '').trim();
+    if (!cleanText) {
+      showToast('Vui lòng nhập nội dung phản hồi!', 'error');
+      return;
+    }
+
+    const replyDate = new Date().toLocaleDateString('vi-VN');
+    setReviews((prev) => {
+      const updated = prev.map((r) => {
+        if (r.id === reviewId) {
+          return {
+            ...r,
+            reply: cleanText,
+            replyDate,
+            repliedBy: 'ĂnVặtPro (Chủ quán)',
+          };
+        }
+        return r;
+      });
+      localStorage.setItem('anvat_reviews', JSON.stringify(updated));
+      return updated;
+    });
+
+    addAuditLog('Phản hồi đánh giá', `Chủ quán trả lời đánh giá #${reviewId}: "${cleanText}"`);
+    showToast('Đã gửi phản hồi thành công đến thực khách!');
   };
 
   const hideReview = (reviewId) => {
@@ -386,7 +775,7 @@ export function AppProvider({ children }) {
     const newLog = {
       id: Date.now(),
       time: timeStr,
-      user: viewMode === 'admin' ? 'Admin (admin@anvatpro.vn)' : user.name,
+      user: viewMode === 'admin' ? 'Admin (admin@anvatpro.vn)' : user?.name || 'Người dùng',
       action,
       detail,
     };
@@ -395,45 +784,49 @@ export function AppProvider({ children }) {
 
   // Auth Operations
   const login = (email, password, role = 'customer') => {
-    if (role === 'admin' || email.includes('admin')) {
-      setUser({
+    const cleanEmail = (email || '').trim();
+    if (role === 'admin' || cleanEmail.toLowerCase().includes('admin')) {
+      const adminUser = {
         id: 'ADM-01',
         name: 'Quản Trị Viên (Admin)',
         email: 'admin@anvatpro.vn',
         phone: '0988000111',
         role: 'admin',
         shift: 'Toàn ca',
-      });
+      };
+      setUser(adminUser);
+      localStorage.setItem('anvat_user', JSON.stringify(adminUser));
       setViewMode('admin');
       showToast('Đăng nhập Quản trị viên thành công!');
     } else {
-      setUser({
-        id: 'USR-88',
-        name: email.split('@')[0] || 'Khách hàng thân thiết',
-        email,
-        phone: '0912345678',
-        address: '123 Cách Mạng Tháng 8, P.7, Q.3, TP.HCM',
-        points: 300,
+      const matchedCustomer = customers.find(
+        (c) =>
+          (c.email && c.email.toLowerCase() === cleanEmail.toLowerCase()) ||
+          (c.phone && c.phone.trim() === cleanEmail)
+      );
+
+      const custUser = {
+        id: matchedCustomer?.id || 'USR-88',
+        name: matchedCustomer?.name || (cleanEmail ? cleanEmail.split('@')[0] : 'Khách hàng thân thiết'),
+        email: matchedCustomer?.email || cleanEmail || 'khachhang@anvatpro.vn',
+        phone: matchedCustomer?.phone || '0912345678',
+        address: matchedCustomer?.address || '123 Cách Mạng Tháng 8, P.7, Q.3, TP.HCM',
+        points: matchedCustomer?.points !== undefined ? matchedCustomer.points : 300,
         role: 'customer',
-      });
-      showToast(`Chào mừng ${email.split('@')[0]} quay trở lại!`);
+      };
+      setUser(custUser);
+      localStorage.setItem('anvat_user', JSON.stringify(custUser));
+      showToast(`Chào mừng ${custUser.name} quay trở lại!`);
     }
     setIsAuthModalOpen(false);
   };
 
   const logout = () => {
-    setUser({
-      id: 'GUEST',
-      name: 'Khách vãng lai',
-      email: '',
-      phone: '',
-      address: '',
-      points: 0,
-      role: 'guest',
-    });
+    setUser(null);
+    localStorage.removeItem('anvat_user');
     setViewMode('customer');
     setCustomerTab('home');
-    showToast('Đã đăng xuất tài khoản.', 'info');
+    showToast('Đã đăng xuất tài khoản thành công.', 'info');
   };
 
   const updateProfile = (profileData) => {
@@ -470,15 +863,25 @@ export function AppProvider({ children }) {
         createOrder,
         updateOrderStatus,
         cancelOrder,
+        reviewOrder,
+        customers,
+        setCustomers,
+        addCustomer,
+        updateCustomer,
+        deleteCustomer,
+        toggleCustomerStatus,
+        adjustCustomerPoints,
         activeTrackingId,
         setActiveTrackingId,
         selectedProduct,
         setSelectedProduct,
+        viewProductDetail,
         isCartDrawerOpen,
         setIsCartDrawerOpen,
         reviews,
         addReview,
         hideReview,
+        replyReview,
         auditLogs,
         addAuditLog,
         user,

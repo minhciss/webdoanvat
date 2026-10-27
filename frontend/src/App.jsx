@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
 import HomeView from './components/HomeView';
 import MenuView from './components/MenuView';
@@ -7,7 +8,7 @@ import CartView from './components/CartView';
 import CheckoutView from './components/CheckoutView';
 import OrderTrackingView from './components/OrderTrackingView';
 import ProfileView from './components/ProfileView';
-import ProductDetailModal from './components/ProductDetailModal';
+import ProductDetailView from './components/ProductDetailView';
 import CartDrawer from './components/CartDrawer';
 import AuthModal from './components/AuthModal';
 import Footer from './components/Footer';
@@ -17,6 +18,7 @@ import Toast from './components/Toast';
 import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminProducts from './components/admin/AdminProducts';
+import AdminCustomers from './components/admin/AdminCustomers';
 import AdminOrders from './components/admin/AdminOrders';
 import AdminInventory from './components/admin/AdminInventory';
 import AdminVouchers from './components/admin/AdminVouchers';
@@ -24,7 +26,7 @@ import AdminReviews from './components/admin/AdminReviews';
 import AdminLogs from './components/admin/AdminLogs';
 
 function MainApp() {
-  const { viewMode, customerTab, setCustomerTab, adminTab } = useApp();
+  const { viewMode, customerTab, setCustomerTab, adminTab, selectedProduct } = useApp();
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -40,6 +42,7 @@ function MainApp() {
         {adminTab === 'dashboard' && <AdminDashboard />}
         {adminTab === 'products' && <AdminProducts />}
         {adminTab === 'orders' && <AdminOrders />}
+        {adminTab === 'customers' && <AdminCustomers />}
         {adminTab === 'inventory' && <AdminInventory />}
         {adminTab === 'vouchers' && <AdminVouchers />}
         {adminTab === 'reviews' && <AdminReviews />}
@@ -82,10 +85,14 @@ function MainApp() {
         {customerTab === 'tracking' && <OrderTrackingView />}
 
         {customerTab === 'profile' && <ProfileView />}
+
+        {customerTab === 'product-detail' && (
+          <ProductDetailView key={selectedProduct?.id || 'default'} />
+        )}
       </main>
 
       {/* Product Detail Modal */}
-      <ProductDetailModal />
+
 
       {/* Mini Cart Fly-out Drawer */}
       <CartDrawer />
@@ -101,9 +108,11 @@ function MainApp() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <MainApp />
-      <Toast />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <MainApp />
+        <Toast />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

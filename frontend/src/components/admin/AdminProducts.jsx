@@ -39,6 +39,7 @@ export default function AdminProducts() {
   const [formDesc, setFormDesc] = useState('');
   const [formSpices, setFormSpices] = useState(['Không cay', 'Cay vừa']);
   const [formIsFlashSale, setFormIsFlashSale] = useState(false);
+  const [formIsNew, setFormIsNew] = useState(true);
 
   // Open modal for creating or editing
   const handleOpenAdd = () => {
@@ -52,6 +53,7 @@ export default function AdminProducts() {
     setFormDesc('Món ăn vặt thơm ngon giòn rụm được nhiều thực khách yêu thích.');
     setFormSpices(['Không cay', 'Cay vừa']);
     setFormIsFlashSale(false);
+    setFormIsNew(true);
     setIsModalOpen(true);
   };
 
@@ -66,6 +68,7 @@ export default function AdminProducts() {
     setFormDesc(prod.description);
     setFormSpices(prod.spiceLevels || ['Cay vừa']);
     setFormIsFlashSale(prod.isFlashSale || false);
+    setFormIsNew(prod.isNew || false);
     setIsModalOpen(true);
   };
 
@@ -94,6 +97,7 @@ export default function AdminProducts() {
       image: formImage.trim() || 'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=600',
       description: formDesc.trim(),
       isFlashSale: formIsFlashSale,
+      isNew: formIsNew,
     };
 
     if (editingProduct) {
@@ -434,18 +438,33 @@ export default function AdminProducts() {
                 ></textarea>
               </div>
 
-              {/* Flash sale flag */}
-              <label className="flex items-center gap-2 cursor-pointer pt-1 font-bold text-stone-700">
-                <input
-                  type="checkbox"
-                  checked={formIsFlashSale}
-                  onChange={(e) => setFormIsFlashSale(e.target.checked)}
-                  className="w-4 h-4 accent-orange-600"
-                />
-                <span className="flex items-center gap-1 text-red-600">
-                  <Flame className="w-3.5 h-3.5 fill-red-600" /> Bật huy hiệu Flash Sale
-                </span>
-              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                {/* Is New flag */}
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-stone-700 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
+                  <input
+                    type="checkbox"
+                    checked={formIsNew}
+                    onChange={(e) => setFormIsNew(e.target.checked)}
+                    className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                  />
+                  <span className="flex items-center gap-1 text-emerald-700 text-xs font-black">
+                    <Sparkles className="w-3.5 h-3.5 fill-emerald-600 text-emerald-600" /> Món Mới giới thiệu
+                  </span>
+                </label>
+
+                {/* Flash sale flag */}
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-stone-700 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
+                  <input
+                    type="checkbox"
+                    checked={formIsFlashSale}
+                    onChange={(e) => setFormIsFlashSale(e.target.checked)}
+                    className="w-4 h-4 accent-orange-600 cursor-pointer"
+                  />
+                  <span className="flex items-center gap-1 text-red-600 text-xs font-black">
+                    <Flame className="w-3.5 h-3.5 fill-red-600" /> Bật Flash Sale
+                  </span>
+                </label>
+              </div>
 
               <div className="flex gap-2 pt-3">
                 <button

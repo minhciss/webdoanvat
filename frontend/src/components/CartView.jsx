@@ -110,7 +110,7 @@ export default function CartView() {
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-md text-[10px]">
-                        Khẩu vị: {item.spiceLevel}
+                        Tùy chọn: {item.spiceLevel}
                       </span>
                       <span className="text-stone-400">|</span>
                       <span className="text-orange-600 font-bold">

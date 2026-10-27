@@ -31,9 +31,9 @@ export default function CheckoutView() {
     showToast,
   } = useApp();
 
-  const [customerName, setCustomerName] = useState(user.name || '');
-  const [customerPhone, setCustomerPhone] = useState(user.phone || '');
-  const [shippingAddress, setShippingAddress] = useState(user.address || '');
+  const [customerName, setCustomerName] = useState(user?.name || '');
+  const [customerPhone, setCustomerPhone] = useState(user?.phone || '');
+  const [shippingAddress, setShippingAddress] = useState(user?.address || '');
   const [note, setNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('vietqr'); // 'vietqr' | 'momo' | 'cod' | 'vnpay'
   const [shippingMethod, setShippingMethod] = useState('express'); // 'express' | 'standard'

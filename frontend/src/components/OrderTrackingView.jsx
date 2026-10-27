@@ -15,21 +15,51 @@ import {
   RotateCcw,
   Sparkles,
   ArrowRight,
+  Star,
+  Send,
 } from 'lucide-react';
 
 export default function OrderTrackingView() {
   const {
+    user,
     orders,
     activeTrackingId,
     setActiveTrackingId,
     cancelOrder,
     setCustomerTab,
     showToast,
+    reviewOrder,
+    products,
+    viewProductDetail,
   } = useApp();
 
   const [searchCode, setSearchCode] = useState(activeTrackingId || '');
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('Đổi ý không ăn nữa');
+
+  // Star rating & Review description state
+  const [orderRating, setOrderRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [orderReviewComment, setOrderReviewComment] = useState('');
+  const [justReviewedOrders, setJustReviewedOrders] = useState({});
+
+  const starLabels = {
+    1: '⭐ Không hài lòng',
+    2: '⭐⭐ Chưa ưng ý',
+    3: '⭐⭐⭐ Bình thường, tạm ổn',
+    4: '⭐⭐⭐⭐ Rất ngon & hài lòng',
+    5: '⭐⭐⭐⭐⭐ Tuyệt vời xuất sắc (Chuẩn vị, nóng giòn)',
+  };
+
+  // Filter user's own orders
+  const userOrders = orders.filter((o) => {
+    if (user?.role === 'admin') return true;
+    return (
+      (o.userId && o.userId === user?.id) ||
+      (o.customerPhone && user?.phone && o.customerPhone.trim() === user?.phone.trim()) ||
+      (o.customerName && user?.name && o.customerName.trim().toLowerCase() === user?.name.trim().toLowerCase())
+    );
+  });
 
   // Find order
   const currentOrder = orders.find(
@@ -129,25 +159,29 @@ export default function OrderTrackingView() {
           </button>
         </form>
 
-        {/* Quick select buttons from demo orders */}
+        {/* Quick select buttons from user's own orders */}
         <div className="pt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
-          <span className="text-stone-400 text-[11px] font-semibold">Đơn hàng mẫu:</span>
-          {orders.slice(0, 4).map((ord) => (
+          <span className="text-stone-500 text-[11px] font-bold">
+            {userOrders.length > 0 ? 'Đơn hàng của bạn:' : 'Mã đơn gần đây:'}
+          </span>
+          {(userOrders.length > 0 ? userOrders : orders.slice(0, 2)).map((ord) => (
             <button
               key={ord.id}
               onClick={() => {
                 setSearchCode(ord.id);
                 setActiveTrackingId(ord.id);
               }}
-              className={`px-2.5 py-1 rounded-xl border text-[11px] font-bold transition flex items-center gap-1 ${
+              className={`px-3 py-1 rounded-xl border text-[11px] font-bold transition flex items-center gap-1.5 ${
                 (activeTrackingId || '').toUpperCase() === ord.id.toUpperCase()
-                  ? 'bg-orange-500 text-white border-orange-600 shadow-xs'
-                  : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
+                  ? 'bg-orange-500 text-white border-orange-600 shadow-sm scale-105'
+                  : 'bg-stone-50 hover:bg-orange-50 hover:border-orange-200 text-stone-700 border-stone-200'
               }`}
             >
               <span>{ord.id}</span>
-              <span className="text-[10px] opacity-75">
-                ({ord.status === 'pending' ? 'Chờ duyệt' : ord.status === 'confirmed' ? 'Bếp làm' : ord.status === 'shipping' ? 'Đang ship' : 'Hoàn tất'})
+              <span className={`text-[10px] px-1.5 py-0.2 rounded ${
+                (activeTrackingId || '').toUpperCase() === ord.id.toUpperCase() ? 'bg-white/20 text-white' : 'bg-stone-200/70 text-stone-600'
+              }`}>
+                {ord.status === 'pending' ? 'Chờ duyệt' : ord.status === 'confirmed' ? 'Bếp làm' : ord.status === 'shipping' ? 'Đang giao' : ord.status === 'cancelled' ? 'Đã hủy' : 'Hoàn tất'}
               </span>
             </button>
           ))}
@@ -342,6 +376,17 @@ export default function OrderTrackingView() {
                           {item.spiceLevel}
                         </span>
                         <span>x{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const prod = products.find((p) => p.id === item.id);
+                            if (prod) viewProductDetail(prod);
+                          }}
+                          className="text-orange-600 hover:text-orange-700 font-bold hover:underline flex items-center gap-0.5 ml-2"
+                        >
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          <span>Đánh giá món này</span>
+                        </button>
                       </div>
                     </div>
                     <span className="font-black text-stone-800">
@@ -376,6 +421,131 @@ export default function OrderTrackingView() {
               </div>
             </div>
           </div>
+
+          {/* Section: ĐÁNH GIÁ SAO VÀ MÔ TẢ CẢM NHẬN KHI ĐƠN ĐÃ GIAO THÀNH CÔNG */}
+          {currentOrder.status === 'completed' && (() => {
+            const isReviewed = currentOrder.reviewed || !!justReviewedOrders[currentOrder.id];
+            const displayRating = currentOrder.rating || justReviewedOrders[currentOrder.id]?.rating || orderRating;
+            const displayComment = currentOrder.reviewComment || justReviewedOrders[currentOrder.id]?.comment || orderReviewComment;
+
+            return (
+              <div className="p-6 bg-stone-50/50 border-t border-stone-100">
+                {isReviewed ? (
+                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl p-5 space-y-2.5 animate-in fade-in duration-300">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-xs font-black text-emerald-800 flex items-center gap-1.5 uppercase">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>Bạn đã gửi đánh giá cho đơn hàng này</span>
+                      </span>
+                      <div className="flex items-center gap-1 text-amber-400">
+                        {Array.from({ length: displayRating || 5 }).map((_, i) => (
+                          <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                        ))}
+                      </div>
+                    </div>
+                    {displayComment && (
+                      <p className="text-xs text-stone-700 bg-white/90 p-3 rounded-2xl border border-emerald-100 italic">
+                        "{displayComment}"
+                      </p>
+                    )}
+                    <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Đã tích lũy +20 Xu ĂnVặtPro vào tài khoản của bạn. Cảm ơn phản hồi quý báu của bạn!</span>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-white border-2 border-orange-200/90 rounded-3xl p-6 space-y-4 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-orange-200/60">
+                      <div>
+                        <h3 className="text-sm font-black text-stone-900 uppercase tracking-wide flex items-center gap-2">
+                          <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                          <span>Đánh Giá Món Ăn & Phục Vụ Đơn Hàng #{currentOrder.id}</span>
+                        </h3>
+                        <p className="text-xs text-stone-500 mt-0.5">
+                          Đơn hàng đã giao thành công! Hãy gửi đánh giá sao và mô tả nhận xét để nhận ngay <strong className="text-orange-600 font-bold">+20 Xu tích lũy</strong>.
+                        </p>
+                      </div>
+                      <span className="bg-amber-100 text-amber-800 font-black text-xs px-3 py-1 rounded-xl self-start sm:self-center shadow-xs">
+                        🎁 Thưởng +20 Xu
+                      </span>
+                    </div>
+
+                    {/* 1. Chọn số sao */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-black text-stone-800 uppercase tracking-wide">
+                        1. Chấm điểm số sao cho món ăn & quán:
+                      </label>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-1.5 bg-white p-2 rounded-2xl border border-stone-200 shadow-xs">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              type="button"
+                              key={star}
+                              onClick={() => setOrderRating(star)}
+                              onMouseEnter={() => setHoverRating(star)}
+                              onMouseLeave={() => setHoverRating(0)}
+                              className="p-1 hover:scale-125 transition"
+                              title={`${star} sao`}
+                            >
+                              <Star
+                                className={`w-6 h-6 sm:w-7 sm:h-7 cursor-pointer transition ${
+                                  star <= (hoverRating || orderRating)
+                                    ? 'fill-amber-400 text-amber-400 drop-shadow-xs'
+                                    : 'text-stone-300'
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-xs font-bold text-amber-800 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
+                          {starLabels[hoverRating || orderRating]}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 2. Nhập mô tả nhận xét */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-black text-stone-800 uppercase tracking-wide">
+                        2. Mô tả nhận xét & cảm nhận của bạn:
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={orderReviewComment}
+                        onChange={(e) => setOrderReviewComment(e.target.value)}
+                        placeholder="Món ăn có nóng hổi không? Nước sốt và độ cay vừa miệng không? Shipper giao nhanh không? Hãy chia sẻ cảm nhận của bạn nhé..."
+                        className="w-full p-3.5 bg-white rounded-2xl border border-stone-200 text-xs text-stone-800 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 resize-none font-medium leading-relaxed"
+                      ></textarea>
+                    </div>
+
+                    {/* Nút gửi đánh giá */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const finalComment = orderReviewComment.trim() || 'Món ăn rất ngon, đóng gói nóng hổi chuẩn vị!';
+                        setJustReviewedOrders((prev) => ({
+                          ...prev,
+                          [currentOrder.id]: {
+                            rating: orderRating,
+                            comment: finalComment,
+                          },
+                        }));
+                        if (typeof reviewOrder === 'function') {
+                          reviewOrder(currentOrder.id, orderRating, finalComment);
+                        } else {
+                          showToast('Đã gửi đánh giá thành công! Nhận +20 Xu');
+                        }
+                        setOrderReviewComment('');
+                      }}
+                      className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>Gửi Đánh Giá Ngay (+20 Xu)</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Footer Actions */}
           <div className="p-6 bg-stone-50 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3">

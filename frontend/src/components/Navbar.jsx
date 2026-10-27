@@ -30,6 +30,7 @@ export default function Navbar({ searchKeyword, setSearchKeyword }) {
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
+  const isLoggedIn = Boolean(user && user.role !== 'guest' && user.id !== 'GUEST');
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleSearchSubmit = (e) => {
@@ -162,14 +163,14 @@ export default function Navbar({ searchKeyword, setSearchKeyword }) {
 
             {/* User Account / Auth */}
             <div className="relative">
-              {user.role !== 'guest' ? (
+              {isLoggedIn ? (
                 <div>
                   <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-stone-200 hover:border-orange-300 bg-white transition text-left"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-stone-200 hover:border-orange-300 bg-white transition text-left cursor-pointer shadow-xs"
                   >
                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 text-white font-bold text-xs flex items-center justify-center shadow-sm">
-                      {user.name.charAt(0).toUpperCase()}
+                      {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                     </div>
                     <div className="hidden md:block">
                       <p className="text-xs font-bold text-stone-800 leading-tight truncate max-w-[100px]">
@@ -186,7 +187,7 @@ export default function Navbar({ searchKeyword, setSearchKeyword }) {
                   {isUserMenuOpen && (
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-stone-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                       <div className="px-4 py-2 border-b border-stone-100">
-                        <p className="text-xs text-stone-400">Đăng nhập với</p>
+                        <p className="text-xs text-stone-400">Đang đăng nhập với</p>
                         <p className="text-sm font-bold text-stone-800 truncate">{user.name}</p>
                         <p className="text-xs text-stone-500 truncate">{user.email || user.phone}</p>
                       </div>
@@ -196,7 +197,7 @@ export default function Navbar({ searchKeyword, setSearchKeyword }) {
                           setCustomerTab('profile');
                           setIsUserMenuOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2.5 text-xs text-stone-700 hover:bg-orange-50 hover:text-orange-600 flex items-center gap-2.5 transition"
+                        className="w-full text-left px-4 py-2.5 text-xs text-stone-700 hover:bg-orange-50 hover:text-orange-600 flex items-center gap-2.5 transition cursor-pointer"
                       >
                         <User className="w-4 h-4 text-orange-500" />
                         <span>Hồ sơ & Sổ địa chỉ</span>
@@ -207,7 +208,7 @@ export default function Navbar({ searchKeyword, setSearchKeyword }) {
                           setCustomerTab('profile');
                           setIsUserMenuOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2.5 text-xs text-stone-700 hover:bg-orange-50 hover:text-orange-600 flex items-center gap-2.5 transition"
+                        className="w-full text-left px-4 py-2.5 text-xs text-stone-700 hover:bg-orange-50 hover:text-orange-600 flex items-center gap-2.5 transition cursor-pointer"
                       >
                         <ShoppingBag className="w-4 h-4 text-amber-500" />
                         <span>Lịch sử đơn hàng</span>
@@ -220,10 +221,10 @@ export default function Navbar({ searchKeyword, setSearchKeyword }) {
                           logout();
                           setIsUserMenuOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition"
+                        className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition cursor-pointer font-bold"
                       >
                         <LogOut className="w-4 h-4" />
-                        <span>Đăng xuất</span>
+                        <span>Đăng xuất tài khoản</span>
                       </button>
                     </div>
                   )}
@@ -231,7 +232,7 @@ export default function Navbar({ searchKeyword, setSearchKeyword }) {
               ) : (
                 <button
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-xl transition shadow-sm"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold rounded-xl transition shadow-sm active:scale-95 cursor-pointer"
                 >
                   <User className="w-4 h-4" />
                   <span>Đăng nhập</span>

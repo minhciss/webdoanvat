@@ -12,11 +12,14 @@ import {
   RotateCcw,
   CheckCircle2,
   Gift,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export default function ProfileView() {
   const {
     user,
+    setIsAuthModalOpen,
     updateProfile,
     orders,
     setActiveTrackingId,
@@ -25,10 +28,25 @@ export default function ProfileView() {
     showToast,
   } = useApp();
 
-  const [fullName, setFullName] = useState(user.name || '');
-  const [phone, setPhone] = useState(user.phone || '');
-  const [email, setEmail] = useState(user.email || '');
-  const [address, setAddress] = useState(user.address || '');
+  const [fullName, setFullName] = useState(user?.name || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [address, setAddress] = useState(user?.address || '');
+
+  // Password visibility toggles
+  const [showOldPass, setShowOldPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+
+  // Filter orders strictly for the logged-in user (Customer only sees their own orders)
+  const userOrders = orders.filter((ord) => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    return (
+      (ord.userId && ord.userId === user.id) ||
+      (ord.customerPhone && user.phone && ord.customerPhone.trim() === user.phone.trim()) ||
+      (ord.customerName && user.name && ord.customerName.trim().toLowerCase() === user.name.trim().toLowerCase())
+    );
+  });
 
   // Change password fields
   const [oldPass, setOldPass] = useState('');
@@ -74,6 +92,26 @@ export default function ProfileView() {
     });
     setCustomerTab('cart');
   };
+
+  if (!user || user.role === 'guest' || user.id === 'GUEST') {
+    return (
+      <div className="max-w-md mx-auto my-12 bg-white p-8 rounded-3xl border border-stone-100 shadow-sm text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-orange-100 text-orange-600 mx-auto flex items-center justify-center">
+          <User className="w-8 h-8" />
+        </div>
+        <h2 className="text-lg font-black text-stone-900">Tài Khoản & Hồ Sơ</h2>
+        <p className="text-xs text-stone-500 leading-relaxed">
+          Bạn chưa đăng nhập. Vui lòng đăng nhập để xem thông tin cá nhân, tích lũy điểm thưởng và theo dõi lịch sử đơn hàng của bạn.
+        </p>
+        <button
+          onClick={() => setIsAuthModalOpen(true)}
+          className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-md transition cursor-pointer active:scale-95"
+        >
+          Đăng Nhập / Đăng Ký Ngay
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -177,24 +215,44 @@ export default function ProfileView() {
             <form onSubmit={handleChangePassword} className="space-y-3 text-xs">
               <div>
                 <label className="block font-bold text-stone-700 mb-1">Mật khẩu cũ:</label>
-                <input
-                  type="password"
-                  value={oldPass}
-                  onChange={(e) => setOldPass(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full p-2.5 bg-stone-50 rounded-xl border border-stone-200 outline-none focus:border-orange-500"
-                />
+                <div className="relative">
+                  <input
+                    type={showOldPass ? 'text' : 'password'}
+                    value={oldPass}
+                    onChange={(e) => setOldPass(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-3 pr-10 py-2.5 bg-stone-50 rounded-xl border border-stone-200 outline-none focus:border-orange-500 font-medium"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPass(!showOldPass)}
+                    className="absolute right-3 top-2.5 text-stone-400 hover:text-orange-600 transition p-0.5 focus:outline-none"
+                    title={showOldPass ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  >
+                    {showOldPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block font-bold text-stone-700 mb-1">Mật khẩu mới:</label>
-                <input
-                  type="password"
-                  value={newPass}
-                  onChange={(e) => setNewPass(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full p-2.5 bg-stone-50 rounded-xl border border-stone-200 outline-none focus:border-orange-500"
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPass ? 'text' : 'password'}
+                    value={newPass}
+                    onChange={(e) => setNewPass(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-3 pr-10 py-2.5 bg-stone-50 rounded-xl border border-stone-200 outline-none focus:border-orange-500 font-medium"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPass(!showNewPass)}
+                    className="absolute right-3 top-2.5 text-stone-400 hover:text-orange-600 transition p-0.5 focus:outline-none"
+                    title={showNewPass ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  >
+                    {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -213,13 +271,28 @@ export default function ProfileView() {
             <h2 className="text-sm font-black text-stone-900 uppercase tracking-wider flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <ShoppingBag className="w-4 h-4 text-orange-500" />
-                <span>Lịch Sử Đặt Hàng ({orders.length})</span>
+                <span>Lịch Sử Đặt Hàng ({userOrders.length})</span>
               </span>
               <span className="text-xs text-stone-400 font-normal">Cập nhật thời gian thực</span>
             </h2>
 
             <div className="space-y-3">
-              {orders.map((ord) => (
+              {userOrders.length === 0 ? (
+                <div className="py-12 text-center space-y-3 bg-stone-50 rounded-2xl border border-dashed border-stone-200 p-6">
+                  <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-500 mx-auto flex items-center justify-center">
+                    <ShoppingBag className="w-6 h-6" />
+                  </div>
+                  <p className="text-stone-700 font-bold text-sm">Bạn chưa có đơn hàng nào</p>
+                  <p className="text-stone-400 text-xs">Các món ăn vặt nóng hổi thơm ngon đang chờ bạn khám phá!</p>
+                  <button
+                    onClick={() => setCustomerTab('menu')}
+                    className="mt-2 px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl transition shadow-sm"
+                  >
+                    Khám phá thực đơn ngay
+                  </button>
+                </div>
+              ) : (
+                userOrders.map((ord) => (
                 <div
                   key={ord.id}
                   className="p-4 bg-stone-50 rounded-2xl border border-stone-100 space-y-3 hover:border-orange-200 transition"
@@ -288,7 +361,7 @@ export default function ProfileView() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
         </div>

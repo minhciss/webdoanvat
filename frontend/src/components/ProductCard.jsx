@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 export default function ProductCard({ product }) {
-  const { addToCart, setSelectedProduct } = useApp();
+  const { addToCart, viewProductDetail } = useApp();
 
   const isLowStock = product.stock > 0 && product.stock <= 5;
   const isOutOfStock = product.stock <= 0;
@@ -19,7 +19,10 @@ export default function ProductCard({ product }) {
   return (
     <div className="bg-white rounded-3xl border border-stone-100 shadow-sm hover:shadow-xl hover:border-orange-200 transition-all duration-300 flex flex-col overflow-hidden group">
       {/* Image Container */}
-      <div className="relative aspect-square w-full overflow-hidden bg-stone-100">
+      <div
+        onClick={() => viewProductDetail(product)}
+        className="relative aspect-square w-full overflow-hidden bg-stone-100 cursor-pointer"
+      >
         <img
           src={product.image}
           alt={product.name}
@@ -29,6 +32,11 @@ export default function ProductCard({ product }) {
 
         {/* Top Badges */}
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
+          {product.isNew && (
+            <span className="bg-emerald-600 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-0.5 animate-pulse">
+              <Sparkles className="w-3 h-3 fill-white" /> MÓN MỚI
+            </span>
+          )}
           {product.discountPercent > 0 && (
             <span className="bg-red-500 text-white font-black text-[11px] px-2 py-0.5 rounded-lg shadow-sm">
               -{product.discountPercent}%
@@ -39,24 +47,46 @@ export default function ProductCard({ product }) {
               <Flame className="w-3 h-3 fill-white" /> FLASH SALE
             </span>
           )}
-          {product.isBestSeller && !product.isFlashSale && (
+          {product.isBestSeller && !product.isFlashSale && !product.isNew && (
             <span className="bg-orange-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-0.5">
               <Sparkles className="w-3 h-3" /> BÁN CHẠY
             </span>
           )}
         </div>
 
-        {/* Spice Level Indicator Tag */}
-        {product.defaultSpice && (
-          <div className="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1">
-            <span>🌶️</span>
-            <span>{product.defaultSpice}</span>
-          </div>
-        )}
+        {/* Category-specific indicator tag */}
+        <div className="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-sm text-white px-2.5 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm">
+          {product.categoryId === 'tra-sua-nuoc' ? (
+            <>
+              <span>🧋</span>
+              <span>Đá & Đường</span>
+            </>
+          ) : (product.categoryId === 'che-trang-mieng' && (product.name?.toLowerCase().includes('chè') || product.name?.toLowerCase().includes('dầm'))) ? (
+            <>
+              <span>🍧</span>
+              <span>Đá & Ngọt</span>
+            </>
+          ) : (product.name?.toLowerCase().includes('flan') || product.categoryId === 'che-trang-mieng') ? (
+            <>
+              <span>🍮</span>
+              <span>Sốt & Vị ngọt</span>
+            </>
+          ) : (!product.spiceLevels || product.spiceLevels.length <= 1 || product.spiceLevels[0] === 'Không cay') ? (
+            <>
+              <span>🧀</span>
+              <span>Không cay</span>
+            </>
+          ) : (
+            <>
+              <span>🌶️</span>
+              <span>{product.defaultSpice || 'Cay vừa'}</span>
+            </>
+          )}
+        </div>
 
         {/* Quick View Button on Hover */}
         <button
-          onClick={() => setSelectedProduct(product)}
+          onClick={() => viewProductDetail(product)}
           className="absolute inset-0 m-auto w-10 h-10 bg-white/90 hover:bg-white text-stone-900 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition duration-200 hover:scale-110"
           title="Xem chi tiết & chọn vị cay"
         >
@@ -84,7 +114,7 @@ export default function ProductCard({ product }) {
           </div>
 
           <h3
-            onClick={() => setSelectedProduct(product)}
+            onClick={() => viewProductDetail(product)}
             className="text-sm font-extrabold text-stone-800 line-clamp-2 hover:text-orange-600 transition cursor-pointer leading-snug mb-1"
           >
             {product.name}
@@ -124,11 +154,15 @@ export default function ProductCard({ product }) {
           <button
             onClick={() => {
               if (isOutOfStock) return;
-              if (product.spiceLevels?.length > 1) {
-                // If has multiple spice levels, open modal to let user pick spice level!
-                setSelectedProduct(product);
+              if (
+                product.categoryId === 'tra-sua-nuoc' ||
+                product.categoryId === 'che-trang-mieng' ||
+                (product.spiceLevels && product.spiceLevels.length > 1)
+              ) {
+                // Open detail page to customize ice/sweetness or spice!
+                viewProductDetail(product);
               } else {
-                addToCart(product, product.defaultSpice || 'Cay vừa', 1);
+                addToCart(product, 'Tiêu chuẩn (Không cay)', 1);
               }
             }}
             disabled={isOutOfStock}

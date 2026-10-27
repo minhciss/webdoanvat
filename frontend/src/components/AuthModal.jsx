@@ -9,16 +9,19 @@ import {
   Flame,
   ShieldCheck,
   Check,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export default function AuthModal() {
-  const { isAuthModalOpen, setIsAuthModalOpen, login, showToast } = useApp();
+  const { isAuthModalOpen, setIsAuthModalOpen, login, setUser, addCustomer, showToast } = useApp();
 
   const [tab, setTab] = useState('login'); // 'login' | 'register' | 'forgot'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   if (!isAuthModalOpen) return null;
 
@@ -27,8 +30,23 @@ export default function AuthModal() {
     if (tab === 'login') {
       login(email || 'khachhang@anvatpro.vn', password);
     } else if (tab === 'register') {
-      login(email || `${name.toLowerCase().replace(/\s+/g, '')}@gmail.com`, password);
-      showToast('Đăng ký tài khoản thành công!');
+      const newRegisteredUser = {
+        id: `USR-${Date.now().toString().slice(-4)}`,
+        name: name.trim() || email.split('@')[0] || 'Khách hàng mới',
+        email: email.trim(),
+        phone: phone.trim() || '0909123456',
+        address: 'Chưa cập nhật địa chỉ',
+        points: 50,
+        role: 'customer',
+        rank: 'Mới',
+        orderCount: 0,
+        totalSpent: 0,
+      };
+      setUser(newRegisteredUser);
+      localStorage.setItem('anvat_user', JSON.stringify(newRegisteredUser));
+      addCustomer(newRegisteredUser);
+      setIsAuthModalOpen(false);
+      showToast(`Đăng ký tài khoản thành công! Chào mừng ${newRegisteredUser.name} (+50 Xu thưởng)`);
     } else {
       showToast(`Đã gửi mã xác nhận OTP về email ${email}!`);
       setTab('login');
@@ -169,14 +187,22 @@ export default function AuthModal() {
               </div>
               <div className="relative">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2.5 bg-stone-50 rounded-xl border border-stone-200 outline-none focus:border-orange-500"
+                  className="w-full pl-9 pr-10 py-2.5 bg-stone-50 rounded-xl border border-stone-200 outline-none focus:border-orange-500 font-medium"
                 />
                 <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-stone-400 hover:text-orange-600 transition p-0.5 focus:outline-none"
+                  title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
           )}

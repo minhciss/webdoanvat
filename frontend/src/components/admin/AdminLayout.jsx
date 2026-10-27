@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   UtensilsCrossed,
   ShoppingBag,
+  Users,
   PackageCheck,
   Ticket,
   MessageSquare,
@@ -25,6 +26,7 @@ export default function AdminLayout({ children }) {
     products,
     user,
     logout,
+    customers,
   } = useApp();
 
   const pendingOrdersCount = orders.filter((o) => o.status === 'pending').length;
@@ -40,6 +42,13 @@ export default function AdminLayout({ children }) {
       badgeColor: 'bg-red-500',
     },
     { id: 'products', label: 'Quản Lý Thực Đơn', icon: UtensilsCrossed },
+    {
+      id: 'customers',
+      label: 'Quản Lý Khách Hàng',
+      icon: Users,
+      badge: customers?.length > 0 ? customers.length : null,
+      badgeColor: 'bg-blue-600',
+    },
     {
       id: 'inventory',
       label: 'Quản Lý Kho & Tồn',
