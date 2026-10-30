@@ -2,17 +2,20 @@
 
 Tài liệu thiết kế cơ sở dữ liệu cho môn học Công nghệ phần mềm: Hệ thống Website Đặt Đồ Ăn Vặt Trực Tuyến (**ĂnVặtPro**).
 
-## 1. Sơ đồ Mermaid ERD
+## 1. Sơ đồ Mermaid ERD (12 Bảng Chuẩn Hóa)
 
 ```mermaid
 erDiagram
     USERS ||--o{ ORDERS : "places"
     USERS ||--o{ REVIEWS : "writes"
+    USERS ||--o{ SHIPPING_ADDRESSES : "saves"
     CATEGORIES ||--o{ PRODUCTS : "contains"
     PRODUCTS ||--o{ ORDER_ITEMS : "included_in"
     PRODUCTS ||--o{ REVIEWS : "receives"
+    PRODUCTS ||--o{ INVENTORY_LOGS : "logs"
     ORDERS ||--|{ ORDER_ITEMS : "has"
     VOUCHERS ||--o{ ORDERS : "applied_to"
+    REVIEWS ||--o{ REVIEW_REPLIES : "replied_by"
 
     USERS {
         string id PK "Mã người dùng (USR-xxx)"
@@ -119,6 +122,48 @@ erDiagram
         timestamp created_at "Thời điểm đánh giá"
     }
 
+    REVIEW_REPLIES {
+        int id PK "Khóa chính tự tăng"
+        int review_id FK "Thuộc đánh giá nào"
+        string admin_id "Mã quản trị viên phản hồi"
+        string admin_name "Tên nhân viên/quản lý"
+        text reply_text "Nội dung phản hồi"
+        timestamp created_at "Thời gian phản hồi"
+    }
+
+    SHIPPING_ADDRESSES {
+        int id PK "Khóa chính tự tăng"
+        string user_id FK "Thuộc tài khoản người dùng"
+        string recipient_name "Tên người nhận"
+        string phone "Số điện thoại"
+        string address "Địa chỉ cụ thể (số nhà, đường)"
+        string ward "Phường/Xã"
+        string district "Quận/Huyện"
+        string province "Tỉnh/Thành phố"
+        boolean is_default "Địa chỉ giao hàng mặc định"
+        timestamp created_at "Thời điểm tạo"
+    }
+
+    INVENTORY_LOGS {
+        int id PK "Khóa chính tự tăng"
+        string product_id FK "Món ăn/Nguyên liệu"
+        string change_type "IMPORT | EXPORT_ORDER | ADJUSTMENT | SPOILED"
+        int quantity_change "Biến động (+ / -)"
+        int remaining_stock "Số lượng tồn sau biến động"
+        string note "Lý do nhập/xuất/điều chỉnh"
+        string created_by "Người thực hiện"
+        timestamp created_at "Thời điểm giao dịch kho"
+    }
+
+    CUSTOMER_RANKS {
+        string rank_id PK "Mã hạng (BRONZE, SILVER, GOLD, DIAMOND)"
+        string rank_name "Tên hạng thành viên"
+        decimal min_spent "Hạn mức chi tiêu tối thiểu"
+        decimal discount_percentage "% Giảm giá độc quyền"
+        text perks_description "Quyền lợi VIP"
+        string badge_color "Màu sắc huy hiệu"
+    }
+
     AUDIT_LOGS {
         int id PK "Khóa chính tự tăng"
         string user_email "Email người thao tác"
@@ -133,10 +178,13 @@ erDiagram
 
 | Bảng nguồn | Quan hệ | Bảng đích | Mô tả |
 | :--- | :---: | :--- | :--- |
-| `categories` | 1 - N | `products` | Một danh mục có nhiều sản phẩm đồ ăn vặt |
+| `categories` | 1 - N | `products` | Một danh mục chứa nhiều sản phẩm món ăn vặt |
 | `users` | 1 - N | `orders` | Một khách hàng có thể đặt nhiều đơn hàng |
 | `orders` | 1 - N | `order_items` | Một đơn hàng bao gồm một hoặc nhiều món chi tiết |
-| `products` | 1 - N | `order_items` | Một món ăn có thể xuất hiện trong nhiều chi tiết đơn |
+| `products` | 1 - N | `order_items` | Một món ăn có thể xuất hiện trong nhiều chi tiết đơn hàng |
 | `products` | 1 - N | `reviews` | Một món ăn nhận được nhiều lượt đánh giá từ khách |
 | `users` | 1 - N | `reviews` | Một người dùng có thể gửi đánh giá cho sản phẩm |
+| `reviews` | 1 - N | `review_replies` | Một đánh giá có thể được Admin/Chủ quán phản hồi giải đáp |
+| `users` | 1 - N | `shipping_addresses` | Một người dùng có thể lưu nhiều địa chỉ nhận hàng trong sổ địa chỉ |
+| `products` | 1 - N | `inventory_logs` | Mỗi sản phẩm có lịch sử ghi vết xuất/nhập/tồn kho chi tiết |
 | `vouchers` | 1 - N | `orders` | Một mã voucher có thể được áp dụng cho nhiều đơn hàng hợp lệ |

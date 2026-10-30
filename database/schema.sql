@@ -158,3 +158,62 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_audit_logs_time` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- 9. BẢNG PHẢN HỒI ĐÁNH GIÁ (REVIEW_REPLIES)
+CREATE TABLE IF NOT EXISTS `review_replies` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `review_id` INT NOT NULL,
+    `admin_id` VARCHAR(50) NOT NULL,
+    `admin_name` VARCHAR(100) NOT NULL,
+    `reply_text` TEXT NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_replies_review` 
+        FOREIGN KEY (`review_id`) REFERENCES `reviews` (`id`) 
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_replies_review` (`review_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10. BẢNG SỔ ĐỊA CHỈ KHÁCH HÀNG (SHIPPING_ADDRESSES)
+CREATE TABLE IF NOT EXISTS `shipping_addresses` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` VARCHAR(50) NOT NULL,
+    `recipient_name` VARCHAR(100) NOT NULL,
+    `phone` VARCHAR(20) NOT NULL,
+    `address` VARCHAR(255) NOT NULL,
+    `ward` VARCHAR(100) NULL,
+    `district` VARCHAR(100) NULL,
+    `province` VARCHAR(100) DEFAULT 'TP. Hồ Chí Minh',
+    `is_default` TINYINT(1) DEFAULT 0,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_addresses_users` 
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) 
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_addresses_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 11. BẢNG NHẬT KÝ NHẬP XUẤT KHO (INVENTORY_LOGS)
+CREATE TABLE IF NOT EXISTS `inventory_logs` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `product_id` VARCHAR(50) NOT NULL,
+    `change_type` ENUM('IMPORT', 'EXPORT_ORDER', 'ADJUSTMENT', 'SPOILED') NOT NULL,
+    `quantity_change` INT NOT NULL,
+    `remaining_stock` INT NOT NULL,
+    `note` VARCHAR(255) NULL,
+    `created_by` VARCHAR(50) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_inventory_products` 
+        FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) 
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    INDEX `idx_inventory_product` (`product_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 12. BẢNG CẤU HÌNH HẠNG THÀNH VIÊN (CUSTOMER_RANKS)
+CREATE TABLE IF NOT EXISTS `customer_ranks` (
+    `rank_id` VARCHAR(20) PRIMARY KEY,
+    `rank_name` VARCHAR(50) NOT NULL,
+    `min_spent` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+    `discount_percentage` DECIMAL(5, 2) NOT NULL DEFAULT 0.00,
+    `perks_description` TEXT NULL,
+    `badge_color` VARCHAR(20) DEFAULT '#gray'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
