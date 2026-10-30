@@ -17,6 +17,7 @@ import Toast from './components/Toast';
 // Admin Components
 import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './components/admin/AdminDashboard';
+import AdminReports from './components/admin/AdminReports';
 import AdminProducts from './components/admin/AdminProducts';
 import AdminCustomers from './components/admin/AdminCustomers';
 import AdminOrders from './components/admin/AdminOrders';
@@ -40,6 +41,7 @@ function MainApp() {
     return (
       <AdminLayout>
         {adminTab === 'dashboard' && <AdminDashboard />}
+        {adminTab === 'reports' && <AdminReports />}
         {adminTab === 'products' && <AdminProducts />}
         {adminTab === 'orders' && <AdminOrders />}
         {adminTab === 'customers' && <AdminCustomers />}

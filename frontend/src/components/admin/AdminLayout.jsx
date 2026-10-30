@@ -15,6 +15,7 @@ import {
   LogOut,
   Sparkles,
   Flame,
+  BarChart3,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
@@ -33,7 +34,8 @@ export default function AdminLayout({ children }) {
   const lowStockCount = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
 
   const navItems = [
-    { id: 'dashboard', label: 'Tổng Quan & Báo Cáo', icon: LayoutDashboard },
+    { id: 'dashboard', label: 'Tổng Quan Doanh Thu', icon: LayoutDashboard },
+    { id: 'reports', label: 'Thống Kê & Báo Cáo', icon: BarChart3 },
     {
       id: 'orders',
       label: 'Quản Lý Đơn Hàng',
