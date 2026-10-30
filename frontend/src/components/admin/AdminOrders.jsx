@@ -17,8 +17,6 @@ import {
   Printer,
   Columns,
   List,
-  FileText,
-  Sparkles,
 } from 'lucide-react';
 
 export default function AdminOrders() {
@@ -30,8 +28,9 @@ export default function AdminOrders() {
   const [cancelModalOrder, setCancelModalOrder] = useState(null);
   const [cancelReason, setCancelReason] = useState('Khách đổi ý hủy đơn');
 
-  // Chế độ xem: 'main-sub' (Main-Sub Form 2 cột) hoặc 'table' (Bảng truyền thống)
-  const [layoutMode, setLayoutMode] = useState('main-sub');
+  // Mặc định là 'table' (Bảng danh sách giống cũ theo yêu cầu người dùng)
+  // Khi cần demo cho giáo viên thì có nút bấm chuyển sang 'main-sub'
+  const [layoutMode, setLayoutMode] = useState('table');
   const [selectedOrderForSubForm, setSelectedOrderForSubForm] = useState(orders[0] || null);
   const [printingOrder, setPrintingOrder] = useState(null);
 
@@ -87,7 +86,7 @@ export default function AdminOrders() {
 
   return (
     <div className="space-y-6">
-      {/* Top Filter Tabs & Search & Chuyển Chế Độ Main-Sub */}
+      {/* Top Filter Tabs & Search & Nút Chuyển Chế Độ Main-Sub */}
       <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           {/* Status Tab buttons */}
@@ -114,20 +113,8 @@ export default function AdminOrders() {
             ))}
           </div>
 
-          {/* Toggle Chế Độ Xem: Main-Sub Form vs Bảng */}
+          {/* Toggle Chế Độ Xem: Bảng Danh Sách (Mặc định) vs Main-Sub Form (Demo) */}
           <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-2xl border border-stone-200 text-xs">
-            <button
-              onClick={() => setLayoutMode('main-sub')}
-              className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition ${
-                layoutMode === 'main-sub'
-                  ? 'bg-white text-orange-600 shadow-xs'
-                  : 'text-stone-500 hover:text-stone-800'
-              }`}
-              title="Chế độ thiết kế Main-Sub Form (Master-Detail)"
-            >
-              <Columns className="w-3.5 h-3.5" />
-              <span>Thiết Kế Main-Sub Form</span>
-            </button>
             <button
               onClick={() => setLayoutMode('table')}
               className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition ${
@@ -139,6 +126,18 @@ export default function AdminOrders() {
               <List className="w-3.5 h-3.5" />
               <span>Chế Độ Bảng Danh Sách</span>
             </button>
+            <button
+              onClick={() => setLayoutMode('main-sub')}
+              className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition ${
+                layoutMode === 'main-sub'
+                  ? 'bg-white text-orange-600 shadow-xs'
+                  : 'text-stone-500 hover:text-stone-800'
+              }`}
+              title="Chế độ thiết kế Main-Sub Form (Master-Detail) để demo cho cô giáo"
+            >
+              <Columns className="w-3.5 h-3.5" />
+              <span>Thiết Kế Main-Sub Form</span>
+            </button>
           </div>
         </div>
 
@@ -146,21 +145,170 @@ export default function AdminOrders() {
         <div className="relative max-w-md">
           <input
             type="text"
-            placeholder="Tìm theo Mã đơn (AV-xxxxx), Tên khách hoặc Số điện thoại..."
+            placeholder="Tìm theo mã đơn (AV-xxxxx), tên hoặc SĐT khách..."
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs outline-none focus:border-orange-500 transition"
+            className="w-full pl-9 pr-3 py-2 bg-stone-50 rounded-xl border border-stone-200 text-xs font-medium outline-none focus:bg-white focus:border-orange-500 transition"
           />
-          <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
         </div>
       </div>
 
       {/* ================================================================= */}
-      {/* 1. THIẾT KẾ MAIN-SUB FORM (MASTER-DETAIL 2 CỘT LIÊN KẾT THỜI GIAN THỰC) */}
+      {/* 1. CHẾ ĐỘ BẢNG DANH SÁCH (MẶC ĐỊNH - GIỐNG CŨ) */}
       {/* ================================================================= */}
-      {layoutMode === 'main-sub' ? (
+      {layoutMode === 'table' ? (
+        <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase font-black tracking-wider text-[10px]">
+                <tr>
+                  <th className="p-4">Mã Đơn & Thời Gian</th>
+                  <th className="p-4">Khách Hàng & Địa Chỉ</th>
+                  <th className="p-4">Tổng Tiền</th>
+                  <th className="p-4">Thanh Toán</th>
+                  <th className="p-4">Trạng Thái Đơn</th>
+                  <th className="p-4 text-right">Quy Trình Xử Lý & Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="p-8 text-center text-stone-400 text-xs">
+                      Không tìm thấy đơn hàng nào phù hợp bộ lọc!
+                    </td>
+                  </tr>
+                ) : (
+                  filteredOrders.map((ord) => (
+                    <tr key={ord.id} className="hover:bg-stone-50/60 transition">
+                      <td className="p-4">
+                        <div className="font-black text-stone-900 text-xs">#{ord.id}</div>
+                        <div className="text-[10px] text-stone-400">
+                          {ord.orderDate || '2026-10-30 15:52'}
+                        </div>
+                      </td>
+
+                      <td className="p-4">
+                        <div className="font-bold text-stone-800">{ord.customerName}</div>
+                        <div className="text-[10px] text-stone-500">{ord.customerPhone}</div>
+                        <div className="text-[10px] text-stone-400 truncate max-w-xs">
+                          {ord.shippingAddress}
+                        </div>
+                      </td>
+
+                      <td className="p-4">
+                        <span className="font-black text-orange-600 text-sm">
+                          {ord.totalAmount?.toLocaleString('vi-VN')}đ
+                        </span>
+                        <span className="block text-[10px] text-stone-400">
+                          {ord.items?.length || 0} món
+                        </span>
+                      </td>
+
+                      <td className="p-4">
+                        <span className="font-bold text-stone-800 uppercase block">
+                          {ord.paymentMethod}
+                        </span>
+                        <span
+                          className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md ${
+                            ord.paymentStatus === 'paid'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {ord.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Thu tiền mặt'}
+                        </span>
+                      </td>
+
+                      <td className="p-4">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
+                            ord.status === 'completed'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : ord.status === 'shipping'
+                              ? 'bg-indigo-100 text-indigo-800'
+                              : ord.status === 'confirmed'
+                              ? 'bg-blue-100 text-blue-800'
+                              : ord.status === 'cancelled'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {ord.status}
+                        </span>
+                      </td>
+
+                      <td className="p-4 text-right space-x-2 whitespace-nowrap">
+                        {/* Nút In hóa đơn bán lẻ */}
+                        <button
+                          onClick={() => triggerPrintReceipt(ord)}
+                          className="p-1.5 hover:bg-stone-100 text-stone-600 rounded-lg transition inline-flex items-center"
+                          title="In hóa đơn / Xuất PDF"
+                        >
+                          <Printer className="w-4 h-4 text-stone-500 hover:text-stone-900" />
+                        </button>
+
+                        {/* Nút Xem chi tiết (Chỉ cần ấn vô con mắt) */}
+                        <button
+                          onClick={() => setViewingOrder(ord)}
+                          className="p-1.5 hover:bg-stone-100 text-stone-600 rounded-lg transition inline-flex items-center"
+                          title="Xem chi tiết đơn hàng"
+                        >
+                          <Eye className="w-4 h-4 text-stone-600 hover:text-orange-600" />
+                        </button>
+
+                        {/* Nút chuyển trạng thái quy trình giống cũ */}
+                        {ord.status === 'pending' && (
+                          <button
+                            onClick={() => handleNextStatus(ord)}
+                            className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-[11px] transition shadow-xs"
+                          >
+                            Duyệt đơn ➔
+                          </button>
+                        )}
+
+                        {ord.status === 'confirmed' && (
+                          <button
+                            onClick={() => handleNextStatus(ord)}
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-[11px] transition shadow-xs"
+                          >
+                            Giao shipper ➔
+                          </button>
+                        )}
+
+                        {ord.status === 'shipping' && (
+                          <button
+                            onClick={() => handleNextStatus(ord)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[11px] transition shadow-xs"
+                          >
+                            Hoàn tất ✓
+                          </button>
+                        )}
+
+                        {/* Nút hủy đơn */}
+                        {['pending', 'confirmed'].includes(ord.status) && (
+                          <button
+                            onClick={() => setCancelModalOrder(ord)}
+                            className="p-1.5 hover:bg-red-50 text-stone-400 hover:text-red-600 rounded-lg transition inline-flex items-center"
+                            title="Hủy đơn này"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* ================================================================= */
+        /* 2. CHẾ ĐỘ THIẾT KẾ MAIN-SUB FORM (MASTER-DETAIL ĐỂ DEMO CHO CÔ) */
+        /* ================================================================= */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* CỘT TRÁI: MAIN FORM (DANH SÁCH BẢN GHI MASTER) */}
+          {/* CỘT TRÁI: MAIN FORM (MASTER) */}
           <div className="lg:col-span-5 bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
             <div className="p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
               <div>
@@ -177,7 +325,7 @@ export default function AdminOrders() {
             <div className="divide-y divide-stone-100 max-h-[650px] overflow-y-auto">
               {filteredOrders.length === 0 ? (
                 <div className="p-8 text-center text-stone-400 text-xs">
-                  Không tìm thấy đơn hàng nào phù hợp!
+                  Không tìm thấy đơn hàng nào!
                 </div>
               ) : (
                 filteredOrders.map((ord) => {
@@ -230,7 +378,7 @@ export default function AdminOrders() {
             </div>
           </div>
 
-          {/* CỘT PHẢI: SUB FORM (CHI TIẾT DETAIL TƯƠNG ỨNG VỚI BẢN GHI MAIN ĐANG CHỌN) */}
+          {/* CỘT PHẢI: SUB FORM (DETAIL) */}
           <div className="lg:col-span-7 bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden sticky top-20">
             {activeSubOrder ? (
               <div className="p-6 space-y-5">
@@ -239,23 +387,20 @@ export default function AdminOrders() {
                     <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider">
                       SUB FORM (DETAIL)
                     </span>
-                    <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
-                      <span>Chi Tiết Đơn Hàng #{activeSubOrder.id}</span>
+                    <h3 className="text-base font-black text-stone-900">
+                      Chi Tiết Đơn Hàng #{activeSubOrder.id}
                     </h3>
                   </div>
 
-                  {/* Nút In hóa đơn / Xuất PDF */}
                   <button
                     onClick={() => triggerPrintReceipt(activeSubOrder)}
                     className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
-                    title="In phiếu hóa đơn bán lẻ hoặc xuất file PDF"
                   >
                     <Printer className="w-3.5 h-3.5 text-orange-400" />
                     <span>In Hóa Đơn / Xuất PDF</span>
                   </button>
                 </div>
 
-                {/* Thông tin khách hàng & Giao nhận (Từ Master Record) */}
                 <div className="grid grid-cols-2 gap-3 text-xs p-3.5 bg-stone-50 rounded-2xl border border-stone-200">
                   <div>
                     <span className="text-[10px] text-stone-400 font-bold block">Khách Nhận:</span>
@@ -275,7 +420,6 @@ export default function AdminOrders() {
                   )}
                 </div>
 
-                {/* BẢNG SUB FORM: CHI TIẾT CÁC MÓN ĂN TRONG ĐƠN (ORDER_ITEMS) */}
                 <div className="space-y-2">
                   <span className="text-xs font-black text-stone-800 block">
                     Danh Sách Món Ăn Trong Đơn ({activeSubOrder.items?.length || 0} món):
@@ -314,7 +458,6 @@ export default function AdminOrders() {
                   </div>
                 </div>
 
-                {/* Tính toán thanh toán */}
                 <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-1.5 text-xs text-stone-600">
                   <div className="flex justify-between">
                     <span>Phí vận chuyển:</span>
@@ -334,7 +477,6 @@ export default function AdminOrders() {
                   </div>
                 </div>
 
-                {/* Các nút hành động xử lý đơn */}
                 <div className="flex items-center gap-2 pt-1">
                   {activeSubOrder.status === 'pending' && (
                     <button
@@ -377,72 +519,100 @@ export default function AdminOrders() {
             )}
           </div>
         </div>
-      ) : (
-        /* ================================================================= */
-        /* 2. CHẾ ĐỘ BẢNG TRUYỀN THỐNG */
-        /* ================================================================= */
-        <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-stone-50 border-b border-stone-200 text-[11px] font-bold text-stone-500">
-                  <th className="py-3.5 px-4">Mã Đơn</th>
-                  <th className="py-3.5 px-4">Khách Hàng</th>
-                  <th className="py-3.5 px-4">Ngày Đặt</th>
-                  <th className="py-3.5 px-4">Phương Thức</th>
-                  <th className="py-3.5 px-4">Trạng Thái</th>
-                  <th className="py-3.5 px-4 text-right">Tổng Tiền</th>
-                  <th className="py-3.5 px-4 text-center">Thao Tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100 text-stone-700">
-                {filteredOrders.map((ord) => (
-                  <tr key={ord.id} className="hover:bg-stone-50/60 transition">
-                    <td className="py-3 px-4 font-black text-stone-900">#{ord.id}</td>
-                    <td className="py-3 px-4">
-                      <p className="font-bold text-stone-800">{ord.customerName}</p>
-                      <p className="text-[10px] text-stone-400">{ord.customerPhone}</p>
-                    </td>
-                    <td className="py-3 px-4 text-stone-500">{ord.orderDate || 'Hôm nay'}</td>
-                    <td className="py-3 px-4 uppercase text-[10px] font-bold text-stone-500">
-                      {ord.paymentMethod}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          ord.status === 'completed'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : ord.status === 'cancelled'
-                            ? 'bg-red-50 text-red-700'
-                            : 'bg-amber-50 text-amber-700'
-                        }`}
-                      >
-                        {ord.status}
+      )}
+
+      {/* ================================================================= */}
+      {/* MODAL XEM CHI TIẾT ĐƠN HÀNG (KHI ẤN VÔ CON MẮT) */}
+      {/* ================================================================= */}
+      {viewingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl relative text-xs">
+            <button
+              onClick={() => setViewingOrder(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center justify-between pr-8">
+              <h3 className="text-base font-black text-stone-900">
+                Chi Tiết Đơn Hàng #{viewingOrder.id}
+              </h3>
+              <button
+                onClick={() => triggerPrintReceipt(viewingOrder)}
+                className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+              >
+                <Printer className="w-3.5 h-3.5 text-orange-400" />
+                <span>In Hóa Đơn / PDF</span>
+              </button>
+            </div>
+
+            {/* Recipient box */}
+            <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-1.5">
+              <p className="font-bold text-stone-800">
+                👤 {viewingOrder.customerName} - 📞 {viewingOrder.customerPhone}
+              </p>
+              <p className="text-stone-500">📍 {viewingOrder.shippingAddress}</p>
+              {viewingOrder.note && (
+                <p className="text-orange-700 bg-orange-50 p-2 rounded-lg font-medium text-[11px]">
+                  Ghi chú bếp: "{viewingOrder.note}"
+                </p>
+              )}
+            </div>
+
+            {/* Items list */}
+            <div>
+              <span className="font-bold text-stone-800 block mb-2">
+                Các món trong đơn ({viewingOrder.items?.length}):
+              </span>
+              <div className="space-y-2">
+                {viewingOrder.items?.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-2.5 bg-stone-50 rounded-xl"
+                  >
+                    <div>
+                      <p className="font-bold text-stone-800">{item.name}</p>
+                      <span className="text-[10px] bg-orange-100 text-orange-700 font-bold px-1.5 py-0.2 rounded">
+                        {item.spiceLevel}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 text-right font-black text-stone-900">
-                      {ord.totalAmount?.toLocaleString('vi-VN')}đ
-                    </td>
-                    <td className="py-3 px-4 text-center flex items-center justify-center gap-1.5">
-                      <button
-                        onClick={() => triggerPrintReceipt(ord)}
-                        className="p-1.5 hover:bg-stone-100 text-stone-600 rounded-lg transition"
-                        title="In hóa đơn"
-                      >
-                        <Printer className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setViewingOrder(ord)}
-                        className="p-1.5 hover:bg-stone-100 text-stone-600 rounded-lg transition"
-                        title="Xem chi tiết"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
+                    </div>
+                    <span className="font-bold text-stone-900">
+                      x{item.quantity} ({(item.price * item.quantity).toLocaleString('vi-VN')}đ)
+                    </span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
+
+            {/* Calculation */}
+            <div className="border-t border-stone-200 pt-3 space-y-1.5 text-stone-600">
+              <div className="flex justify-between">
+                <span>Phí giao hàng:</span>
+                <span>{viewingOrder.shippingFee?.toLocaleString('vi-VN')}đ</span>
+              </div>
+              {viewingOrder.discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-600 font-bold">
+                  <span>Voucher ({viewingOrder.voucherCode}):</span>
+                  <span>-{viewingOrder.discountAmount?.toLocaleString('vi-VN')}đ</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm font-black text-stone-900 pt-2 border-t border-stone-100">
+                <span>Tổng tiền:</span>
+                <span className="text-orange-600">
+                  {viewingOrder.totalAmount?.toLocaleString('vi-VN')}đ
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setViewingOrder(null)}
+                className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 font-bold rounded-xl text-stone-700"
+              >
+                Đóng
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -555,22 +725,22 @@ export default function AdminOrders() {
             >
               <option value="Khách đổi ý hủy đơn">Khách đổi ý hủy đơn</option>
               <option value="Hết nguyên liệu làm món">Hết nguyên liệu làm món</option>
-              <option value="Không liên lạc được khách">Không liên lạc được khách</option>
-              <option value="Quá thời gian chuẩn bị">Quá thời gian chuẩn bị</option>
+              <option value="Không liên lạc được số điện thoại">Không liên lạc được với khách</option>
+              <option value="Khu vực ngoài phạm vi ship">Khu vực ngoài phạm vi ship</option>
             </select>
 
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setCancelModalOrder(null)}
-                className="flex-1 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs"
+                className="flex-1 py-2 border border-stone-200 text-stone-600 font-bold rounded-xl text-xs"
               >
-                Hủy Bỏ
+                Giữ đơn
               </button>
               <button
                 onClick={handleConfirmCancel}
                 className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-xs"
               >
-                Xác Nhận Hủy
+                Xác nhận hủy
               </button>
             </div>
           </div>
