@@ -758,4 +758,18 @@ export const INITIAL_CUSTOMERS = [
     joinedDate: '23/10/2026',
     note: 'Khách đặt chân gà sốt thái qua website.',
   },
+  {
+    id: 'USR-07',
+    name: 'minhzz0201',
+    email: 'minhzz0201@gmail.com',
+    phone: '0912020101',
+    address: '123 Cách Mạng Tháng 8, P.7, Q.3, TP.HCM',
+    points: 300,
+    orderCount: 2,
+    totalSpent: 185000,
+    rank: 'VIP',
+    status: 'active',
+    joinedDate: '26/10/2026',
+    note: 'Tài khoản khách hàng thành viên minhzz0201.',
+  },
 ];

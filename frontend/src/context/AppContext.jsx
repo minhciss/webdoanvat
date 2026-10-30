@@ -167,12 +167,81 @@ export function AppProvider({ children }) {
   // Customers Management (Admin)
   const [customers, setCustomers] = useState(() => {
     const saved = localStorage.getItem('anvat_customers');
-    return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
+    const savedVersion = localStorage.getItem('anvat_customers_version');
+    if (saved && savedVersion === 'v3_auto_sync_minhzz') {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return INITIAL_CUSTOMERS;
+      }
+    }
+    localStorage.setItem('anvat_customers_version', 'v3_auto_sync_minhzz');
+    // Merge existing saved customers with INITIAL_CUSTOMERS (including minhzz0201)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const map = new Map();
+        INITIAL_CUSTOMERS.forEach((c) => map.set((c.email || c.id).toLowerCase(), c));
+        parsed.forEach((c) => {
+          const key = (c.email || c.id).toLowerCase();
+          map.set(key, { ...map.get(key), ...c });
+        });
+        const merged = Array.from(map.values());
+        localStorage.setItem('anvat_customers', JSON.stringify(merged));
+        return merged;
+      } catch (e) {}
+    }
+    localStorage.setItem('anvat_customers', JSON.stringify(INITIAL_CUSTOMERS));
+    return INITIAL_CUSTOMERS;
   });
 
   useEffect(() => {
     localStorage.setItem('anvat_customers', JSON.stringify(customers));
   }, [customers]);
+
+  // Always auto-sync logged-in customer into `customers` list so Admin always sees them!
+  useEffect(() => {
+    if (user && user.role !== 'guest' && user.id !== 'GUEST' && user.role !== 'admin') {
+      setCustomers((prev) => {
+        const index = prev.findIndex(
+          (c) =>
+            (c.email && user.email && c.email.toLowerCase() === user.email.toLowerCase()) ||
+            (c.phone && user.phone && c.phone.trim() === user.phone.trim()) ||
+            c.id === user.id
+        );
+        if (index > -1) {
+          const existing = prev[index];
+          if (
+            existing.name !== user.name ||
+            existing.points !== user.points ||
+            existing.phone !== user.phone ||
+            existing.address !== user.address
+          ) {
+            const updated = [...prev];
+            updated[index] = { ...existing, ...user };
+            return updated;
+          }
+          return prev;
+        } else {
+          const newCust = {
+            id: user.id || `USR-${Math.floor(10 + Math.random() * 90)}`,
+            name: user.name || user.email?.split('@')[0] || 'Khách hàng',
+            email: user.email || '',
+            phone: user.phone || '0912020101',
+            address: user.address || '123 Cách Mạng Tháng 8, P.7, Q.3, TP.HCM',
+            points: user.points !== undefined ? user.points : 300,
+            orderCount: user.orderCount || 0,
+            totalSpent: user.totalSpent || 0,
+            rank: user.rank || (user.points >= 200 ? 'VIP' : 'Thành viên'),
+            status: 'active',
+            joinedDate: new Date().toLocaleDateString('vi-VN'),
+            note: 'Tài khoản thành viên đăng nhập.',
+          };
+          return [newCust, ...prev];
+        }
+      });
+    }
+  }, [user]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Product Detail Modal
@@ -475,6 +544,26 @@ export function AppProvider({ children }) {
     // Save order
     setOrders((prev) => [newOrder, ...prev]);
     setActiveTrackingId(orderCode);
+
+    // Update customer stats
+    if (user && user.role !== 'admin') {
+      setCustomers((prev) =>
+        prev.map((c) => {
+          if (c.id === user.id || (c.email && user.email && c.email.toLowerCase() === user.email.toLowerCase())) {
+            const nextOrderCount = (c.orderCount || 0) + 1;
+            const nextTotalSpent = (c.totalSpent || 0) + cartTotal;
+            const nextRank = nextTotalSpent >= 500000 ? 'Kim Cương' : nextTotalSpent >= 200000 ? 'VIP' : 'Thành viên';
+            return {
+              ...c,
+              orderCount: nextOrderCount,
+              totalSpent: nextTotalSpent,
+              rank: nextRank,
+            };
+          }
+          return c;
+        })
+      );
+    }
 
     // Add Audit Log
     addAuditLog('Tạo đơn hàng mới', `Khách hàng đặt đơn ${orderCode} - Tổng: ${cartTotal.toLocaleString('vi-VN')}đ`);
@@ -805,15 +894,25 @@ export function AppProvider({ children }) {
           (c.phone && c.phone.trim() === cleanEmail)
       );
 
-      const custUser = {
-        id: matchedCustomer?.id || 'USR-88',
-        name: matchedCustomer?.name || (cleanEmail ? cleanEmail.split('@')[0] : 'Khách hàng thân thiết'),
-        email: matchedCustomer?.email || cleanEmail || 'khachhang@anvatpro.vn',
-        phone: matchedCustomer?.phone || '0912345678',
-        address: matchedCustomer?.address || '123 Cách Mạng Tháng 8, P.7, Q.3, TP.HCM',
-        points: matchedCustomer?.points !== undefined ? matchedCustomer.points : 300,
+      const custUser = matchedCustomer || {
+        id: `USR-${Math.floor(10 + Math.random() * 90)}`,
+        name: cleanEmail ? cleanEmail.split('@')[0] : 'Khách hàng',
+        email: cleanEmail || 'khachhang@anvatpro.vn',
+        phone: '0912020101',
+        address: '123 Cách Mạng Tháng 8, P.7, Q.3, TP.HCM',
+        points: 300,
+        orderCount: 0,
+        totalSpent: 0,
+        rank: 'VIP',
+        status: 'active',
+        joinedDate: new Date().toLocaleDateString('vi-VN'),
         role: 'customer',
       };
+
+      if (!matchedCustomer) {
+        setCustomers((prev) => [custUser, ...prev]);
+      }
+
       setUser(custUser);
       localStorage.setItem('anvat_user', JSON.stringify(custUser));
       showToast(`Chào mừng ${custUser.name} quay trở lại!`);
@@ -831,6 +930,18 @@ export function AppProvider({ children }) {
 
   const updateProfile = (profileData) => {
     setUser((prev) => ({ ...prev, ...profileData }));
+    setCustomers((prev) =>
+      prev.map((c) => {
+        if (
+          user &&
+          (c.id === user.id ||
+            (c.email && user.email && c.email.toLowerCase() === user.email.toLowerCase()))
+        ) {
+          return { ...c, ...profileData };
+        }
+        return c;
+      })
+    );
     showToast('Cập nhật thông tin hồ sơ thành công!');
   };
 
